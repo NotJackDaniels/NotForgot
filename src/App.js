@@ -1,16 +1,14 @@
 /* eslint-disable prettier/prettier */
-import React, {Component} from 'react';
-import {LoginScreen} from './screens/LoginScreen';
-import {RegistrationScreen} from './screens/RegistrationScreen';
+import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
-import {AuthStackNavigator} from './navigators/AuthStackNavigator';
+import {AuthStackNavigator} from './navigators/routes';
 
 const RootStack = createStackNavigator();
 
 
 export default function() {
-  return(
+  return (
     <NavigationContainer>
       <RootStack.Navigator screenOptions={{headerShown:false,}}>
         <RootStack.Screen name={'AuthStack'} component={AuthStackNavigator} />
