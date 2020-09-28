@@ -64,7 +64,7 @@ export class LoginScreen extends React.Component{
             secureTextEntry 
             placeholder={'Password'}
             value={password}
-            onChangeText={(value) => this.onChangeHandle('password',value)} 
+            onChangeText={(value) => this.onChangeHandle('password',value)}
           />
           <FilledButton title={'Вход'} style={styles.loginButton} onPress={() => {
             this.doLogin();}} />

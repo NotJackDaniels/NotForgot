@@ -7,18 +7,20 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { RegistrationScreen } from '../screens/RegistrationScreen';
 import MainScreen from '../screens/MainScreen';
 import authLoadingScreen from '../screens/authLoadingScreen';
+import CreateTaskScreen from '../screens/CreateTaskScreen';
 
 
-const AuthStack = createStackNavigator();
+const RoutStack = createStackNavigator();
 
 export function AuthStackNavigator() {
-    return(
-        <AuthStack.Navigator screenOptions={{headerShown:false,}}>
-            <AuthStack.Screen name={'Auth'} component={authLoadingScreen}/>
-            <AuthStack.Screen name={'Login'} component={LoginScreen}/>
-            <AuthStack.Screen name={'Registration'} component={RegistrationScreen}/>
-            <AuthStack.Screen name={'MainPage'} component={MainScreen}/>
-        </AuthStack.Navigator>
+    return (
+        <RoutStack.Navigator screenOptions={{headerShown:false,}}>
+            <RoutStack.Screen name={'Auth'} component={authLoadingScreen}/>
+            <RoutStack.Screen name={'Login'} component={LoginScreen}/>
+            <RoutStack.Screen name={'Registration'} component={RegistrationScreen}/>
+            <RoutStack.Screen name={'MainPage'} component={MainScreen}/>
+            <RoutStack.Screen name={'CreateTask'} component={CreateTaskScreen}/>
+        </RoutStack.Navigator>
     ); 
 }
 
