@@ -85,6 +85,11 @@ const styles = StyleSheet.create({
     padding:20,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+    elevation: 5,
   },
   container:{
     flex: 1,
@@ -92,6 +97,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding:20,
     backgroundColor:'#fd9400',
+    
   },
   input:{
     marginVertical:8,

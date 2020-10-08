@@ -99,6 +99,11 @@ const styles = StyleSheet.create({
     padding:20,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+    elevation: 5,
   },
   container:{
     flex: 1,
