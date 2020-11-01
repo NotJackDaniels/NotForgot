@@ -1,12 +1,13 @@
 /* eslint-disable prettier/prettier */
 import React, {Component} from 'react';
-import {Text, View, StyleSheet} from 'react-native';
+import {Text, View, StyleSheet, Platform} from 'react-native';
 import { FilledButton } from '../components/FilledButton';
 import {Heading} from '../components/Heading';
 import { Input } from '../components/Input';
 import { TextButton } from '../components/TextButton';
 import AsyncStorage from '@react-native-community/async-storage';
 import axios from 'axios';
+import { PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 
 
 
@@ -29,7 +30,7 @@ export class RegistrationScreen extends React.Component {
     if(this.state.password !== this.state.repeatPassword){
       alert("Пароли не совпадают");
     }
-    else if(this.state.password === "" || this.state.repeatPassword || this.state.email || this.state.name){
+    else if(this.state.password === "" || this.state.repeatPassword === "" || this.state.email === "" || this.state.name === ""){
       alert("Остались незаполненные поля");
     }
     else{
@@ -110,13 +111,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding:20,
-    backgroundColor:'#fd9400',
+    backgroundColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
   },
   input:{
     marginVertical:8,
   },
   title:{
-      color:'#fd9400',
+      color:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
   },
   loginButton:{
     marginVertical:10,

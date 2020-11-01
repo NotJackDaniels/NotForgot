@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import React, {Component} from 'react';
-import {Text, View, StyleSheet} from 'react-native';
+import {Text, View, StyleSheet, Platform} from 'react-native';
 import { FilledButton } from '../components/FilledButton';
 import {Heading} from '../components/Heading';
 import { Input } from '../components/Input';
@@ -9,6 +9,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import {NavigationContainer} from '@react-navigation/native';
 import AsyncStorage from '@react-native-community/async-storage';
 import axios from 'axios';
+import { PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 
 
 
@@ -27,6 +28,7 @@ export class LoginScreen extends React.Component{
 
   doLogin() {
     const { email,password } = this.state;
+    
     const req = {
       "email":email,
       "password":password
@@ -96,14 +98,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding:20,
-    backgroundColor:'#fd9400',
+    backgroundColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
     
   },
   input:{
     marginVertical:8,
   },
   title:{
-      color:'#fd9400',
+      color:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
   },
   loginButton:{
     marginVertical:10,

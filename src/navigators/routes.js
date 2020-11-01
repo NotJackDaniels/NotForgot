@@ -8,6 +8,7 @@ import { RegistrationScreen } from '../screens/RegistrationScreen';
 import MainScreen from '../screens/MainScreen';
 import authLoadingScreen from '../screens/authLoadingScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
+import Splash from '../screens/Splash';
 
 
 const RoutStack = createStackNavigator();
@@ -15,6 +16,7 @@ const RoutStack = createStackNavigator();
 export function AuthStackNavigator() {
     return (
         <RoutStack.Navigator screenOptions={{headerShown:false,}}>
+            <RoutStack.Screen name={'Splash'} component={Splash}/>
             <RoutStack.Screen name={'Auth'} component={authLoadingScreen}/>
             <RoutStack.Screen name={'Login'} component={LoginScreen}/>
             <RoutStack.Screen name={'Registration'} component={RegistrationScreen}/>

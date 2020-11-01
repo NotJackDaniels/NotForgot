@@ -1,9 +1,9 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react'
 import { Text, StyleSheet,TouchableOpacity, Platform } from 'react-native'
-import { PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
+import { PRIMARY, PRIMARYANDROID, PRIMARYIOS, SECONDARY } from '../globalStyles/colors'
 
-export function PlusButton({title,style,onPress}) {
+export function CategoryButton({title,style,onPress}) {
 
     return (
         <TouchableOpacity style={[styles.container,style]} onPress={onPress}>
@@ -14,16 +14,15 @@ export function PlusButton({title,style,onPress}) {
 
 const styles = StyleSheet.create({
     container:{
-        backgroundColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
-        color:'white',
+        backgroundColor:SECONDARY,
+        color:SECONDARY,
         borderRadius:10,
         width:50,
         alignItems:'center',
-        padding:5,
     },
     text:{
-        color:'white',
+        color:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
         fontWeight:'100',
-        fontSize:30,
+        fontSize:35,
     }
 })

@@ -1,6 +1,7 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react'
-import { Text, StyleSheet,TouchableOpacity, } from 'react-native'
+import { Text, StyleSheet,TouchableOpacity, Platform } from 'react-native'
+import { PRIMARYANDROID, PRIMARYIOS, SECONDARY } from '../globalStyles/colors';
 
 export function BackButton({arrow,title,style,onPress}) {
 
@@ -14,8 +15,8 @@ export function BackButton({arrow,title,style,onPress}) {
 
 const styles = StyleSheet.create({
     container:{
-        backgroundColor:'#fd9400',
-        color:'white',
+        backgroundColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
+        color:SECONDARY,
         borderRadius:10,
         width:'100%',
         alignItems:'center',
