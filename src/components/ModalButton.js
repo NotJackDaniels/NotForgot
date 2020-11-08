@@ -7,7 +7,7 @@ export function ModalButton({title,style,onPress}) {
 
     return (
         <TouchableOpacity style={[styles.container,style]} onPress={onPress}>
-            <Text style={styles.text}>{title.toUpperCase()}</Text>
+            <Text style={styles.text}>{title}</Text>
         </TouchableOpacity>
     );
 }
@@ -22,6 +22,7 @@ const styles = StyleSheet.create({
     text:{
         color:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
         fontWeight:'100',
-        fontSize:14,
+        fontSize:18,
+        padding:7,
     }
 })

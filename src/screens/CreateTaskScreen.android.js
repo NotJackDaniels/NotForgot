@@ -1,7 +1,8 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react';
 import { Text, StyleSheet, View, SafeAreaView, Platform, Image } from 'react-native';
-import {Picker} from '@react-native-community/picker';
+//import {Picker} from '@react-native-community/picker';
+import {Picker} from 'native-base';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { BackButton } from '../components/BackButton';
@@ -26,6 +27,7 @@ export default class CreateTaskScreen extends Component {
             date:'',
             allCategories:[],
             allPriorities:[],
+            selected_id:''
         }
         this.AddCategory = this.AddCategory.bind(this);
     }
@@ -51,10 +53,11 @@ export default class CreateTaskScreen extends Component {
         category:'',
     }
     handlePicker = (datetime) => {
+        console.warn(datetime);
         this.setState({
             isVisible:false,
-            showDate : moment(datetime).format('MMMM,Do YYYY'),
-            date:datetime,
+            showDate : moment(datetime).format('DD.MM.YYYY'),
+            date:moment(datetime,"DD.MM.YYYY").unix(),
         })
     }
 
@@ -94,7 +97,7 @@ export default class CreateTaskScreen extends Component {
 
     saveAll = async() => {
         const {title,description,priority,category} = this.state;
-        console.warn(priority,category,title,description,this.state.date);
+        console.warn(title,description,1,this.state.date,category,priority);
         const req = {
           "title": title,
           "description":description,
@@ -109,7 +112,7 @@ export default class CreateTaskScreen extends Component {
                 'Accept' : 'application/json',
                 'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')}
         })
-        authAxios.post('/categories',req)
+        authAxios.post('/tasks',req)
           .then(
             res => {
                 console.warn(res);
@@ -142,7 +145,7 @@ export default class CreateTaskScreen extends Component {
                     <TouchableOpacity style={{marginLeft:10,display:'flex'}} 
                         onPress={() => {this.props.navigation.navigate('MainPage')}}
                     >
-                        <Image style={{color:'white'}} source={require("../assets/arrow.png")}/>
+                        <Image  source={require("../assets/arrow.png")}/>
                     </TouchableOpacity>
                     <Text style={{color:'white',fontSize:20,marginLeft:50}}>Not forgot!</Text>
                 </View>
@@ -156,11 +159,11 @@ export default class CreateTaskScreen extends Component {
                             onChangeText={(value) => this.onChangeHandle('title',value)}
                         />
                         <View style={{backgroundColor:'rgba(51, 51, 51, 0.06)', marginBottom:5}}>
-                            <Text style={{marginVertical:5,marginHorizontal:12,color:'rgba(0, 0, 0, 0.54)'}}>Описание</Text>
+                            <Text style={{marginTop:5,marginHorizontal:12,color:'rgba(0, 0, 0, 0.54)'}}>Описание</Text>
                             <Input 
                                 style={styles.input} 
                                 multiline
-                                numberOfLines={2}
+                                numberOfLines={3}
                                 value={description}
                                 onChangeText={(value) => this.onChangeHandle('description',value)}
                             /> 
@@ -168,6 +171,8 @@ export default class CreateTaskScreen extends Component {
                         <View style={{width:'100%'}}>
                             <View style={{marginBottom:5,width:'80%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
                                 <Picker
+                                mode="dropdown"
+                                
                                     selectedValue={category}
                                     itemStyle={styles.itemStyle}
                                     style={styles.priority}
@@ -188,13 +193,14 @@ export default class CreateTaskScreen extends Component {
                         </View>
                         <View style={{marginBottom:5,width:'100%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
                             <Picker
+                                mode="dropdown"
+                                placeholder="Start Year"
                                 selectedValue={priority}
                                 itemStyle={styles.itemStyle}
                                 style={styles.priority}
                                 onValueChange={(itemValue, itemIndex) =>
                                     this.onChangeHandle('priority',itemValue)
                                 }>
-
                                 {this.state.allPriorities.length ?
                                     this.state.allPriorities.map(prior=>
                                     <Picker.Item key={prior.id} label={prior.name} value={prior.id}/>
@@ -216,7 +222,7 @@ export default class CreateTaskScreen extends Component {
                             style={{textColor:PRIMARY}}
                             
                         />
-                    <CategoryModal ref={'addModal'} />
+
                     </SafeAreaView>
                     
                     <View style={styles.saveButton}>
@@ -224,7 +230,7 @@ export default class CreateTaskScreen extends Component {
                     </View>
 
                 </View>
-
+                <CategoryModal ref={'addModal'} />
             </View>
         )
     }
@@ -245,6 +251,8 @@ const styles = StyleSheet.create({
         borderColor: Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
         textAlignVertical: 'top',
         borderBottomWidth: 2,
+        paddingHorizontal:10,
+        paddingVertical:2,
     },
     note:{
         fontSize:30,
@@ -284,7 +292,7 @@ const styles = StyleSheet.create({
     },
     content:{
         flex:0.92,
- 
+        zIndex:-1,
     },
     picker:{
         color:'white',
@@ -296,9 +304,34 @@ const styles = StyleSheet.create({
     priority:{
         width: '100%',
         color:GreyBg,
-        backgroundColor:'transparent',
     },
     itemStyle:{
         alignSelf:'center',
     }
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -2,7 +2,7 @@
 import React, { Component } from 'react'
 import { Text, StyleSheet, View, Platform, Button,KeyboardAvoidingView, ProgressViewIOS  } from 'react-native'
 import Modal from 'react-native-modalbox'
-import { PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
+import { GreyBg, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 import { FilledButton } from './FilledButton';
 import { Input } from './Input';
 import { ModalButton } from './ModalButton';
@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-community/async-storage';
 
 
 
-
+const keyboardVerticalOffset = 0;
 
 
 export default class CategoryModal extends Component {
@@ -64,47 +64,53 @@ export default class CategoryModal extends Component {
                     justifyContent:'center',
                     borderRadius:10,
                     width:'80%',
-                    height:'35%',
-                    padding:10,
-                    marginVertical:30
+                    height:170,
+                    marginVertical:'20%',
+                    alignItems:'center',
+                    backgroundColor:' rgba(242, 242, 242, 0.8)',
                 }}
                 position='top'
                 backdrop={true}
                 onClosed={()=>{}}
                 >
-                <KeyboardAvoidingView
-                behavior="padding"
-                >
-                    <Text style={{color:'black'}}> Добавить категорию </Text>
-                    <Input 
-                        style={styles.input} 
-                        placeholder={'Input text'}
-                        placeholderTextColor="#000" 
-                        value={name}
-                        onChangeText={(value) => this.onChangeHandle('name',value)}
-                    />
-                    <View style={{width:'100%',  flexDirection: 'row', justifyContent: 'flex-end'}}>
+
+                    <View style={{padding:10,alignItems:'center',width:'100%'}}>
+                        <Text style={{color:'black',fontSize:18,fontWeight:'900'}}> Добавить категорию </Text>
+                        <Text style={{color:'black',fontSize:14,fontWeight:'normal',paddingHorizontal:30,textAlign:'center'}}> Введите название новой категории </Text>
+                        <Input 
+                            style={styles.input} 
+                            placeholder={'Категория'}
+                            value={name}
+                            onChangeText={(value) => this.onChangeHandle('name',value)}
+                        />
+                    </View>
+                    <View style={{height:1,backgroundColor:GreyBg,width:'100%'}}></View>
+                    <View style={{width:'100%',  flexDirection: 'row',}}>
                         <ModalButton title='Отмена' style={styles.buttons} onPress={()=>{this.closeModal()}}/>
+                        <View style={{height:'100%',backgroundColor:GreyBg,width:1}}></View>
                         <ModalButton title={'Сохранить'} style={styles.buttons} onPress={() => {
                             this.makeCategory()}}/>
                     </View>
-                </KeyboardAvoidingView>     
+
+                  
             </Modal>
-            
         )
     }
 }
 
 const styles = StyleSheet.create({
     input:{
-        borderColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
-        color:'black',
-        borderBottomWidth:2,
-        marginBottom:5
+        marginVertical:10,
+        paddingVertical:0,
+        marginHorizontal:5,
+        borderRadius:5,
+        paddingHorizontal:5,
+        borderWidth:0,
     },
     buttons:{
         color:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
-        backgroundColor:'white',
-        marginHorizontal:5
+        backgroundColor:'transparent',
+        marginHorizontal:0,
+        width:'50%',
     }
 })

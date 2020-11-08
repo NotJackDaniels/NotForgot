@@ -12,6 +12,8 @@ import { CategoryButton } from '../components/CategoryButton'
 import { FilledButton } from '../components/FilledButton';
 import CategoryModal from '../components/CategoryModal';
 import { GreyBg, PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
+import AsyncStorage from '@react-native-community/async-storage';
+import axios from 'axios';
 
 export default class CreateTaskScreen extends Component {
 
@@ -20,7 +22,11 @@ export default class CreateTaskScreen extends Component {
         this.state = {
             isVisible: false,
             priority:'Приоритет',
-            date:"Сделать до",
+            showDate:"Сделать до",
+            date:'',
+            allCategories:[],
+            allPriorities:[],
+            selected_id:''
         }
         this.AddCategory = this.AddCategory.bind(this);
     }
@@ -44,20 +50,84 @@ export default class CreateTaskScreen extends Component {
         title:'',
         description:'',
         category:'',
-        
     }
     handlePicker = (datetime) => {
         this.setState({
             isVisible:false,
-            date : moment(datetime).format('MMMM,Do YYYY'),
+            showDate : moment(datetime).format('MMMM,Do YYYY'),
+            date:moment(datetime,"DD.MM.YYYY").unix(),
         })
     }
 
+    getCategory = async() => {
+        const authAxios = axios.create({
+            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
+            headers:{
+                'Accept' : 'application/json',
+                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
+           
+        })
+        authAxios.get('/categories')
+          .then(
+            res => {
+                this.setState({allCategories:res.data});
+            },
+            err => {alert("Ошибка запроса")}
+          )
+    }
+
+    getPriorities = async() => {
+        const authAxios = axios.create({
+            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
+            headers:{
+                'Accept' : 'application/json',
+                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
+           
+        })
+        authAxios.get('/priorities')
+          .then(
+            res => {
+                this.setState({allPriorities:res.data});
+            },
+            err => {alert("Ошибка запроса")}
+          )
+    }
+
+    saveAll = async() => {
+        const {title,description,priority,category} = this.state;
+        console.warn(title,description,1,this.state.date,category,priority);
+        const req = {
+          "title": title,
+          "description":description,
+          "done": 1,
+          "deadline":this.state.date,
+          "category_id":category,
+          "priority_id":priority,
+        }
+        const authAxios = axios.create({
+            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
+            headers:{
+                'Accept' : 'application/json',
+                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')}
+        })
+        authAxios.post('/tasks',req)
+          .then(
+            res => {
+                console.warn(res);
+            },
+          )
+    }
 
     onChangeHandle(state,value){
         this.setState({
           [state]: value
         })
+    }
+
+    componentDidMount()
+    {
+        this.getCategory();
+        this.getPriorities();
     }
 
     AddCategory(){
@@ -102,7 +172,13 @@ export default class CreateTaskScreen extends Component {
                                     onValueChange={(itemValue, itemIndex) =>
                                         this.onChangeHandle('category',itemValue)
                                     }>
-                                    <Picker.Item label="Категория" value="low" />
+                                    {this.state.allCategories.length ?
+                                        this.state.allCategories.map(category=>
+
+                                        <Picker.Item key={category.id} label={category.name} value={category.id}/>)
+                                        :
+                                        <Picker.Item label="Категория" value="low" />
+                                    }
                                 </Picker>
                             </View>
                             <CategoryButton title={'+'} style={styles.plusButton} onPress={() => this.AddCategory()} />
@@ -115,14 +191,17 @@ export default class CreateTaskScreen extends Component {
                                 onValueChange={(itemValue, itemIndex) =>
                                     this.onChangeHandle('priority',itemValue)
                                 }>
-                                {this.state.loading = true ? (<Picker.Item label="Приоритет" value="Priority" />) :null}
-                                <Picker.Item label="Низкий" value="low" />
-                                <Picker.Item label="Средний" value="middle" />
-                                <Picker.Item label="Высокий" value="high" />
+
+                                {this.state.allPriorities.length ?
+                                    this.state.allPriorities.map(prior=>
+                                    <Picker.Item key={prior.id} label={prior.name} value={prior.id}/>
+                                    ):
+                                    <Picker.Item label="Ошибка" value="error" />
+                                }
                             </Picker>
                         </View>
                         <TouchableOpacity style={styles.picker} onPress={this.showPicker}>
-                            <Text style={{color:GreyBg}} >{this.state.date}</Text>
+                            <Text style={{color:GreyBg}} >{this.state.showDate}</Text>
                         </TouchableOpacity>
                         
                         <DateTimePicker
@@ -133,15 +212,15 @@ export default class CreateTaskScreen extends Component {
                             style={{textColor:PRIMARY}}
                             
                         />
-                                            <CategoryModal ref={'addModal'} />
+
                     </SafeAreaView>
                     
                     <View style={styles.saveButton}>
-                        <FilledButton title={'Сохранить'} onPress={() => {}} />
+                        <FilledButton title={'Сохранить'} onPress={() => {this.saveAll()}} />
                     </View>
 
                 </View>
-
+                <CategoryModal ref={'addModal'} />
             </View>
         )
     }
@@ -194,7 +273,7 @@ const styles = StyleSheet.create({
     },
     content:{
         flex:0.85,
- 
+        zIndex:-1,
     },
     picker:{
         backgroundColor:'rgba(116, 116, 128, 0.08)',
