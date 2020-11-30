@@ -53,7 +53,6 @@ export default class CreateTaskScreen extends Component {
         category:'',
     }
     handlePicker = (datetime) => {
-        console.warn(datetime);
         this.setState({
             isVisible:false,
             showDate : moment(datetime).format('DD.MM.YYYY'),
@@ -101,7 +100,7 @@ export default class CreateTaskScreen extends Component {
         const req = {
           "title": title,
           "description":description,
-          "done": 1,
+          "done": 0,
           "deadline":this.state.date,
           "category_id":category,
           "priority_id":priority,
@@ -115,7 +114,7 @@ export default class CreateTaskScreen extends Component {
         authAxios.post('/tasks',req)
           .then(
             res => {
-                console.warn(res);
+                this.goBack();
             },
           )
     }
@@ -136,6 +135,13 @@ export default class CreateTaskScreen extends Component {
         this.refs.addModal.showCategoryModal();
     }
 
+    goBack(){
+        this.props.route.params.refresh();
+        this.props.navigation.navigate('MainPage');
+    }
+    
+
+
     render() {
         const {title,description,priority,category} = this.state;
         return (
@@ -143,7 +149,7 @@ export default class CreateTaskScreen extends Component {
             
                 <View  style={styles.heading}>
                     <TouchableOpacity style={{marginLeft:10,display:'flex'}} 
-                        onPress={() => {this.props.navigation.navigate('MainPage')}}
+                        onPress={() => {this.goBack()}}
                     >
                         <Image  source={require("../assets/arrow.png")}/>
                     </TouchableOpacity>

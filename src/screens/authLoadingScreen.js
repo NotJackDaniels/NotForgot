@@ -26,7 +26,7 @@ export default class authLoadingScreen extends Component {
     render() {
         return (
             <View>
-                <Text> textInComponent </Text>
+                <Text></Text>
             </View>
         )
     }
