@@ -11,6 +11,7 @@ import { Task } from '../components/Task.android';
 import CheckBox from '@react-native-community/checkbox';
 import Swipeout from 'react-native-swipeout';
 import { InMemoryCache } from '@apollo/client/core';
+import { isNonNullType } from 'graphql';
 
 
 
@@ -196,7 +197,7 @@ export default class MainScreen extends Component {
                     </TouchableOpacity>
                 </View>
                 <View >
-                    {this.state.allCategories.length ? 
+                    {this.state.allTasks && this.state.allTasks.length ? 
                         this.state.allCategories.map(cat=>
                            this.checkCategory(cat.id) === true ?
                                 <View>
@@ -208,9 +209,14 @@ export default class MainScreen extends Component {
                                     />
                                 </View>:null
                             ):
-                            <Text>Loading...</Text>
+                            <View style={{alignItems:'center',marginTop:70}}>
+                                <Image
+                                source={require('../images/noTasks.png')}
+                                />
+                                <Text style={{marginTop:20}}>У вас пока нет дел.</Text>
+                                <Text> Счастливый вы человек!</Text>
+                            </View>
                         }
-                        
                 </View>
                 <ActionButton buttonColor={PRIMARYANDROID}
                     onPress={() => {

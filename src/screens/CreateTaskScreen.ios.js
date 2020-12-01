@@ -114,6 +114,7 @@ export default class CreateTaskScreen extends Component {
           .then(
             res => {
                 console.warn(res);
+                this.goBack();
             },
           )
     }
@@ -134,6 +135,11 @@ export default class CreateTaskScreen extends Component {
         this.refs.addModal.showCategoryModal();
     }
 
+    goBack(){
+        this.props.route.params.refresh();
+        this.props.navigation.navigate('MainPage');
+    }
+
     render() {
         const {title,description,priority,category} = this.state;
         
@@ -142,7 +148,7 @@ export default class CreateTaskScreen extends Component {
             
                 <View  style={styles.heading}>
                     <BackButton arrow={'<'} title={'Not forgot!'} style={styles.loginButton} onPress={() => {
-                    this.props.navigation.navigate('MainPage')}}/>
+                    this.goBack()}}/>
                     <Text style={styles.textLoc}> Добавить заметку</Text>
                 </View>
                 <View style={styles.content}>
