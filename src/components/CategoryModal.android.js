@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react'
-import { Text, StyleSheet, View, Platform, Button,KeyboardAvoidingView, ProgressViewIOS  } from 'react-native'
+import { Text, StyleSheet, View, Platform, Button,KeyboardAvoidingView, ProgressViewIOS,Dimensions  } from 'react-native'
 import Modal from 'react-native-modalbox'
 import { PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 import { FilledButton } from './FilledButton';
@@ -11,13 +11,17 @@ import AsyncStorage from '@react-native-community/async-storage';
 
 
 
-
+const { height } = Dimensions.get('window')
 const keyboardVerticalOffset = 0;
 
 
 export default class CategoryModal extends Component {
     constructor(props){
         super(props);
+        this.state = {
+            value:'',
+            name:''
+        }
     }
     showCategoryModal = () => {
         this.refs.myModal.open();
@@ -25,10 +29,6 @@ export default class CategoryModal extends Component {
 
     closeModal = () => {
         this.refs.myModal.close()
-    }
-
-    state = {
-        name:"",
     }
 
     onChangeHandle(state,value){
@@ -51,6 +51,7 @@ export default class CategoryModal extends Component {
         authAxios.post('/categories',req)
           .then(
             res => {
+                this.props.getCategory()
                 this.refs.myModal.close();
             },
           )
@@ -60,15 +61,7 @@ export default class CategoryModal extends Component {
         return (
                 <Modal 
                 ref={"myModal"}
-                style={{
-                    justifyContent:'center',
-                    borderRadius:10,
-                    width:'80%',
-                    height:130,
-                    padding:10,
-                    marginVertical:'20%',
-                    
-                }}
+                style={styles.modal}
                 position='top'
                 backdrop={true}
                 onClosed={()=>{}}
@@ -81,8 +74,12 @@ export default class CategoryModal extends Component {
                         placeholder={'Input text'}
                         placeholderTextColor="#000" 
                         value={name}
+                        maxLength = {140}
                         onChangeText={(value) => this.onChangeHandle('name',value)}
                     />
+                    <View style={{flexDirection: 'row', justifyContent: 'flex-end',marginBottom:10}}>
+                        <Text>{name.length}/140</Text>
+                    </View>
                     <View style={{width:'100%',  flexDirection: 'row', justifyContent: 'flex-end'}}>
                         <ModalButton title='Отмена' style={styles.buttons} onPress={()=>{this.closeModal()}}/>
                         <ModalButton title={'Сохранить'} style={styles.buttons} onPress={() => {
@@ -109,5 +106,17 @@ const styles = StyleSheet.create({
         color:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
         backgroundColor:'white',
         marginHorizontal:5
+    },
+    modal:{
+        justifyContent:'center',
+        width:'80%',
+        height:170,
+        padding:10,
+        marginVertical:'20%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 2,
+        elevation: 5,
     }
 })

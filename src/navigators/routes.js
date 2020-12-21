@@ -9,6 +9,8 @@ import MainScreen from '../screens/MainScreen';
 import authLoadingScreen from '../screens/authLoadingScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
 import Splash from '../screens/Splash';
+import TaskDetailsScreen from '../screens/TaskDetailsScreen.android';
+import EditTaskScreen from '../screens/EditTaskScreen.android';
 
 
 const RoutStack = createStackNavigator();
@@ -22,6 +24,8 @@ export function AuthStackNavigator() {
             <RoutStack.Screen name={'Registration'} component={RegistrationScreen}/>
             <RoutStack.Screen name={'MainPage'} component={MainScreen} />
             <RoutStack.Screen name={'CreateTask'} component={CreateTaskScreen} />
+            <RoutStack.Screen name={'Details'} component={TaskDetailsScreen} />
+            <RoutStack.Screen name={'Edit'} component={EditTaskScreen} />
         </RoutStack.Navigator>
     ); 
 }

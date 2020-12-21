@@ -81,6 +81,7 @@ export default class MainScreen extends Component {
         authAxios.patch((`/tasks/${item.id}`),req)
           .then(
             res => {
+                this.getTasks();
                 return this.checkValue(item);
             },
             err => {alert(err)}
@@ -128,6 +129,9 @@ export default class MainScreen extends Component {
                 err => {alert(err)}
             )
     }
+    ShowTaskDetails(item){
+        this.props.navigation.navigate('Details',{item: item,refresh: this.getTasks});
+    }
 
     renderItem({item},id){
         const bg = item.priority.color;
@@ -136,7 +140,7 @@ export default class MainScreen extends Component {
             text: 'Delete',
             backgroundColor: 'red',
             underlayColor: 'rgba(0, 0, 0, 1, 0.6)',
-            onPress: () =>  this.deleteItem(item)
+            onPress: () =>  this.deleteItem(item)  
           }];
         if(item.category.id === id)
         {
@@ -145,7 +149,10 @@ export default class MainScreen extends Component {
                     right={swipeBtns}
                     autoClose='true'
                     backgroundColor= 'transparent'>
-                    <View style={{width:'100%',height:50,flexDirection: 'row'}}>
+                    <TouchableOpacity 
+                        style={{width:'100%',height:50,flexDirection: 'row'}}
+                     onPress={()=>this.ShowTaskDetails(item)}
+                    >
                         <View style={{height:'100%',width:5,backgroundColor:bg}}></View>
                         <View style={{marginLeft:10}}>
                             <Text style={{fontSize:18,color:'black'}}> {item.title}</Text>
@@ -160,7 +167,7 @@ export default class MainScreen extends Component {
                                 disabled={this.checkValue(item)}
                                 />
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 </Swipeout>
             )
         }

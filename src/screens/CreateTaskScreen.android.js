@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react';
-import { Text, StyleSheet, View, SafeAreaView, Platform, Image } from 'react-native';
+import { Text, StyleSheet, View, SafeAreaView, Platform, Image, KeyboardAvoidingView, Dimensions } from 'react-native';
 //import {Picker} from '@react-native-community/picker';
 import {Picker} from 'native-base';
 import { TouchableOpacity } from 'react-native-gesture-handler';
@@ -12,9 +12,12 @@ import { PlusButton } from '../components/PlusButton';
 import { CategoryButton } from '../components/CategoryButton'
 import { FilledButton } from '../components/FilledButton';
 import CategoryModal from '../components/CategoryModal';
+import SaveModal from '../components/SaveModal';
 import { GreyBg, PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 import AsyncStorage from '@react-native-community/async-storage';
 import axios from 'axios';
+
+const { height } = Dimensions.get('window');
 
 export default class CreateTaskScreen extends Component {
 
@@ -27,9 +30,11 @@ export default class CreateTaskScreen extends Component {
             date:'',
             allCategories:[],
             allPriorities:[],
-            selected_id:''
+            selected_id:'',
+            description:'',
         }
         this.AddCategory = this.AddCategory.bind(this);
+        this.Save = this.Save.bind(this);
     }
 
     
@@ -49,7 +54,6 @@ export default class CreateTaskScreen extends Component {
 
     state = {
         title:'',
-        description:'',
         category:'',
     }
     handlePicker = (datetime) => {
@@ -94,6 +98,10 @@ export default class CreateTaskScreen extends Component {
           )
     }
 
+    Save(){
+        this.refs.saveModal.showSaveModal();
+    }
+
     saveAll = async() => {
         const {title,description,priority,category} = this.state;
         console.warn(title,description,1,this.state.date,category,priority);
@@ -116,6 +124,7 @@ export default class CreateTaskScreen extends Component {
             res => {
                 this.goBack();
             },
+            err => {alert("Заполнены не все поля!")}
           )
     }
 
@@ -145,7 +154,7 @@ export default class CreateTaskScreen extends Component {
     render() {
         const {title,description,priority,category} = this.state;
         return (
-            <View style={styles.holeContent}>
+            <KeyboardAvoidingView style={{height}} >
             
                 <View  style={styles.heading}>
                     <TouchableOpacity style={{marginLeft:10,display:'flex'}} 
@@ -171,8 +180,12 @@ export default class CreateTaskScreen extends Component {
                                 multiline
                                 numberOfLines={3}
                                 value={description}
+                                maxLength = {120}
                                 onChangeText={(value) => this.onChangeHandle('description',value)}
                             /> 
+                        </View>
+                        <View style={{flexDirection: 'row', justifyContent: 'flex-end',marginBottom:10}}>
+                            <Text>{description.length}/120</Text>
                         </View>
                         <View style={{width:'100%'}}>
                             <View style={{marginBottom:5,width:'80%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
@@ -232,12 +245,14 @@ export default class CreateTaskScreen extends Component {
                     </SafeAreaView>
                     
                     <View style={styles.saveButton}>
-                        <FilledButton title={'Сохранить'} onPress={() => {this.saveAll()}} />
+                        <FilledButton title={'Сохранить'} onPress={() => {this.Save()}} />
                     </View>
 
                 </View>
-                <CategoryModal ref={'addModal'} />
-            </View>
+                <CategoryModal getCategory={this.getCategory} ref={'addModal'} />
+                <SaveModal saveAll={this.saveAll} ref={'saveModal'}/>
+                
+            </KeyboardAvoidingView>
         )
     }
 }
@@ -245,12 +260,12 @@ export default class CreateTaskScreen extends Component {
 const styles = StyleSheet.create({
     saveButton:{
         position:'absolute',
-        bottom:0,
+        bottom:20,
         width:'100%',
-        padding:10
+        padding:10,
     },
     holeContent:{
-        flex:1,
+        
     },
     input:{
         backgroundColor:'transparent',
@@ -277,7 +292,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     heading:{
-        flex:0.08,
+        minHeight:'8%',
         flexDirection:'row',
         backgroundColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
         alignItems: 'center',
@@ -297,7 +312,7 @@ const styles = StyleSheet.create({
         right:0,
     },
     content:{
-        flex:0.92,
+        height:'92%',
         zIndex:-1,
     },
     picker:{
