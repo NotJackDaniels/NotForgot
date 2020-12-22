@@ -36,9 +36,24 @@ export default class MainScreen extends Component {
                 'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
            
         })
+        const tasks = await AsyncStorage.getItem('tasks')
+        
+        if(tasks) {
+            try {
+                console.warn(1);
+              const tasksResp = await authAxios.get('/tasks')
+              const taskData = await JSON.stringify(tasksResp.data)
+              await AsyncStorage.setItem('tasks', taskData);
+            } catch(e) {
+              console.warn("fetch Error: ", e)
+           }
+        }
+        this.setState({allTasks:JSON.parse(await AsyncStorage.getItem('tasks'))});
         authAxios.get('/tasks')
           .then(
             res => {
+                const taskData = JSON.stringify(res.data);
+                AsyncStorage.setItem('tasks', taskData);
                 this.setState({allTasks:res.data});
             },
             err => {alert("Ошибка запроса")}

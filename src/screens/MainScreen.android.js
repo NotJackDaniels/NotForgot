@@ -45,6 +45,7 @@ export default class MainScreen extends Component {
         
         if(tasks) {
             try {
+                console.warn(1);
               const tasksResp = await authAxios.get('/tasks')
               const taskData = await JSON.stringify(tasksResp.data)
               await AsyncStorage.setItem('tasks', taskData);
@@ -52,11 +53,12 @@ export default class MainScreen extends Component {
               console.warn("fetch Error: ", e)
            }
         }
-        this.state.allTasks = JSON.parse(await AsyncStorage.getItem('tasks'));
+        this.setState({allTasks:JSON.parse(await AsyncStorage.getItem('tasks'))});
         authAxios.get('/tasks')
           .then(
-
             res => {
+                const taskData = JSON.stringify(res.data);
+                AsyncStorage.setItem('tasks', taskData);
                 this.setState({allTasks:res.data});
             },
             err => {alert("Ошибка запроса")}

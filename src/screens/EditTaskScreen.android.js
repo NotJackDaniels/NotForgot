@@ -193,7 +193,7 @@ export default class EditTaskScreen extends Component {
                             /> 
                         </View>
                         <View style={{width:'100%'}}>
-                            <View style={{marginBottom:5,width:'80%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
+                            <View style={{marginBottom:5,width:'80%',height:50,backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
                                 <Picker
                                     
                                     mode="dropdown"
@@ -210,7 +210,6 @@ export default class EditTaskScreen extends Component {
                                         :
                                         <Picker.Item label="Категория" value="low" />
                                     }
-                                    <Picker.Item label="Категория" value="low" />
                                 </Picker>
                             </View>
                             <CategoryButton title={'+'} style={styles.plusButton} onPress={() => this.AddCategory()} />
@@ -333,7 +332,7 @@ const styles = StyleSheet.create({
     },
     itemStyle:{
         alignSelf:'center',
-    }
+    },
 })
 
 
