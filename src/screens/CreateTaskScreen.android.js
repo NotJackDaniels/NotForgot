@@ -1,7 +1,8 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react';
-import { Text, StyleSheet, View, SafeAreaView, Platform } from 'react-native';
-import {Picker} from '@react-native-community/picker';
+import { Text, StyleSheet, View, SafeAreaView, Platform, Image, KeyboardAvoidingView, Dimensions } from 'react-native';
+//import {Picker} from '@react-native-community/picker';
+import {Picker} from 'native-base';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { BackButton } from '../components/BackButton';
@@ -11,10 +12,12 @@ import { PlusButton } from '../components/PlusButton';
 import { CategoryButton } from '../components/CategoryButton'
 import { FilledButton } from '../components/FilledButton';
 import CategoryModal from '../components/CategoryModal';
+import SaveModal from '../components/SaveModal';
 import { GreyBg, PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 import AsyncStorage from '@react-native-community/async-storage';
 import axios from 'axios';
-import SaveModal from '../components/SaveModal';
+
+const { height } = Dimensions.get('window');
 
 export default class CreateTaskScreen extends Component {
 
@@ -22,7 +25,6 @@ export default class CreateTaskScreen extends Component {
         super();
         this.state = {
             isVisible: false,
-            priority:'Приоритет',
             showDate:"Сделать до",
             date:'',
             allCategories:[],
@@ -31,6 +33,7 @@ export default class CreateTaskScreen extends Component {
             description:'',
         }
         this.AddCategory = this.AddCategory.bind(this);
+        this.Save = this.Save.bind(this);
     }
 
     
@@ -51,11 +54,12 @@ export default class CreateTaskScreen extends Component {
     state = {
         title:'',
         category:'',
+                    priority:'',
     }
     handlePicker = (datetime) => {
         this.setState({
             isVisible:false,
-            showDate : moment(datetime).format('MMMM,Do YYYY'),
+            showDate : moment(datetime).format('DD.MM.YYYY'),
             date:moment(datetime,"DD.MM.YYYY").unix(),
         })
     }
@@ -104,7 +108,7 @@ export default class CreateTaskScreen extends Component {
         const req = {
           "title": title,
           "description":description,
-          "done": 1,
+          "done": 0,
           "deadline":this.state.date,
           "category_id":category,
           "priority_id":priority,
@@ -118,7 +122,6 @@ export default class CreateTaskScreen extends Component {
         authAxios.post('/tasks',req)
           .then(
             res => {
-                console.warn(res);
                 this.goBack();
             },
             err => {alert("Заполнены не все поля!")}
@@ -145,19 +148,24 @@ export default class CreateTaskScreen extends Component {
         this.props.route.params.refresh();
         this.props.navigation.navigate('MainPage');
     }
+    
+
 
     render() {
         const {title,description,priority,category} = this.state;
-        
         return (
-            <View style={styles.holeContent}>
+            <KeyboardAvoidingView style={{height}} >
             
                 <View  style={styles.heading}>
-                    <BackButton arrow={'<'} title={'Not forgot!'} style={styles.loginButton} onPress={() => {
-                    this.goBack()}}/>
-                    <Text style={styles.textLoc}> Добавить заметку</Text>
+                    <TouchableOpacity style={{marginLeft:10,display:'flex'}} 
+                        onPress={() => {this.goBack()}}
+                    >
+                        <Image  source={require("../assets/arrow.png")}/>
+                    </TouchableOpacity>
+                    <Text style={{color:'white',fontSize:20,marginLeft:50}}>Not forgot!</Text>
                 </View>
                 <View style={styles.content}>
+                    <Text style={styles.note}>Добавить заметку</Text>
                     <SafeAreaView style={styles.form}>
                         <Input 
                             style={{marginBottom:8,}} 
@@ -166,22 +174,25 @@ export default class CreateTaskScreen extends Component {
                             onChangeText={(value) => this.onChangeHandle('title',value)}
                         />
                         <View style={{backgroundColor:'rgba(51, 51, 51, 0.06)', marginBottom:5}}>
-                            <Text style={{marginVertical:5,marginHorizontal:12,color:'rgba(0, 0, 0, 0.54)'}}>Описание</Text>
+                            <Text style={{marginTop:5,marginHorizontal:12,color:'rgba(0, 0, 0, 0.54)'}}>Описание</Text>
                             <Input 
                                 style={styles.input} 
                                 multiline
                                 numberOfLines={3}
-                                maxLength = {120}
                                 value={description}
+                                maxLength = {120}
                                 onChangeText={(value) => this.onChangeHandle('description',value)}
                             /> 
                         </View>
                         <View style={{flexDirection: 'row', justifyContent: 'flex-end',marginBottom:10}}>
                             <Text>{description.length}/120</Text>
                         </View>
-                        <View style={{width:'100%'}}>
-                            <View style={{borderRadius:10,marginBottom:5,width:'80%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
+                        <View style={{width:'100%',borderTopLeftRadius:4}}>
+                            <View style={{marginBottom:5,borderTopLeftRadius:4,
+                                         borderTopRightRadius:4,width:'90%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
                                 <Picker
+                                mode="dropdown"
+                                
                                     selectedValue={category}
                                     itemStyle={styles.itemStyle}
                                     style={styles.priority}
@@ -195,19 +206,27 @@ export default class CreateTaskScreen extends Component {
                                         :
                                         <Picker.Item label="Категория" value="low" />
                                     }
+                                    <Picker.Item label="Категория" value="low" />
                                 </Picker>
+                                { this.state.category === undefined  && 
+                                    <View style={{position:'absolute',borderTopLeftRadius:4,height:'100%',width:'80%',backgroundColor:'#f4f4f5',}}>
+                                        <Text style={styles.pickerLabel}>Категория</Text>
+                                    </View>
+                                }
                             </View>
                             <CategoryButton title={'+'} style={styles.plusButton} onPress={() => this.AddCategory()} />
                         </View>
-                        <View style={{borderRadius:10,marginBottom:5,width:'100%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
+                        <View style={{marginBottom:5,width:'100%',borderTopLeftRadius:4,borderTopRightRadius:4,
+                        backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
                             <Picker
+                                mode="dropdown"
+                                placeholder="Start Year"
                                 selectedValue={priority}
                                 itemStyle={styles.itemStyle}
                                 style={styles.priority}
                                 onValueChange={(itemValue, itemIndex) =>
                                     this.onChangeHandle('priority',itemValue)
                                 }>
-
                                 {this.state.allPriorities.length ?
                                     this.state.allPriorities.map(prior=>
                                     <Picker.Item key={prior.id} label={prior.name} value={prior.id}/>
@@ -215,9 +234,15 @@ export default class CreateTaskScreen extends Component {
                                     <Picker.Item label="Ошибка" value="error" />
                                 }
                             </Picker>
+                            { priority === undefined  && 
+                            <View style={{position:'absolute',borderTopLeftRadius:4,height:'100%',width:'80%',backgroundColor:'#f4f4f5',}}>
+                                <Text style={styles.pickerLabel}>Приоритет</Text>
+                            </View>}
+                            
                         </View>
                         <TouchableOpacity style={styles.picker} onPress={this.showPicker}>
                             <Text style={{color:GreyBg}} >{this.state.showDate}</Text>
+                            
                         </TouchableOpacity>
                         
                         <DateTimePicker
@@ -238,7 +263,8 @@ export default class CreateTaskScreen extends Component {
                 </View>
                 <CategoryModal getCategory={this.getCategory} ref={'addModal'} />
                 <SaveModal saveAll={this.saveAll} ref={'saveModal'}/>
-            </View>
+                
+            </KeyboardAvoidingView>
         )
     }
 }
@@ -246,21 +272,28 @@ export default class CreateTaskScreen extends Component {
 const styles = StyleSheet.create({
     saveButton:{
         position:'absolute',
-        bottom:0,
+        bottom:25,
         width:'100%',
-        padding:10
+        padding:10,
     },
     holeContent:{
-        flex:1,
+        
     },
     input:{
         backgroundColor:'transparent',
         borderColor: Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
         textAlignVertical: 'top',
         borderBottomWidth: 2,
+        paddingHorizontal:10,
+        paddingVertical:2,
+    },
+    note:{
+        fontSize:30,
+        marginHorizontal:10,
+        marginVertical:5
     },
     form:{
-        margin:10,
+        marginVertical:10,
         padding:10,
         backgroundColor:'white',
         borderBottomWidth: 0,
@@ -271,10 +304,12 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     heading:{
-        flex:0.15,
+        minHeight:'8%',
+        flexDirection:'row',
         backgroundColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
-        justifyContent: 'center',
+        alignItems: 'center',
         padding:5,
+        width:'100%',
     },
     textLoc:{
         position: 'absolute',
@@ -289,25 +324,56 @@ const styles = StyleSheet.create({
         right:0,
     },
     content:{
-        flex:0.85,
+        height:'92%',
         zIndex:-1,
     },
     picker:{
-        backgroundColor:'rgba(116, 116, 128, 0.08)',
         color:'white',
-        borderRadius:10,
         width:'100%',
-        alignItems:'center',
-        padding:15,
+        paddingVertical:5,
+        borderBottomWidth: 1,
+        borderColor:'#a9a9a9',
+        marginTop:10,
     },
     priority:{
         width: '100%',
         color:GreyBg,
-        backgroundColor:'transparent',
-        alignItems:'center', 
-        justifyContent:'center',
+        borderTopRightRadius:4,
+        borderTopLeftRadius:4,
     },
     itemStyle:{
         alignSelf:'center',
+    },
+    pickerLabel:{
+        top:'25%',
+        fontSize:16,
+        marginLeft:5,
+        color:'#c1c1c4',
     }
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

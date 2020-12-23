@@ -25,12 +25,11 @@ export default class MainScreen extends Component {
             allCategories:[],
             selectedItem: null,
         }
-        this.getTasks();
     }
     componentDidMount()
     {
         this.getCategory();
-
+        this.getTasks();
     }
 
     getTasks = async() =>{
