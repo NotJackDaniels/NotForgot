@@ -1,13 +1,14 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react';
 import { Text, StyleSheet,TouchableOpacity } from 'react-native';
+import Ripple from 'react-native-material-ripple';
 
 export function TextButton({title,style,onPress}) {
 
     return (
-        <TouchableOpacity style={[styles.container,style]} onPress={onPress}>
+        <Ripple style={[styles.container,style]} onPress={onPress}>
             <Text style={styles.text}>{title.toUpperCase()}</Text>
-        </TouchableOpacity>
+        </Ripple>
     );
 }
 

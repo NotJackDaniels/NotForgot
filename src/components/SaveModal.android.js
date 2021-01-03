@@ -31,12 +31,6 @@ export default class SaveModal extends Component {
         this.refs.myModal.close()
     }
 
-    onChangeHandle(state,value){
-        this.setState({
-            [state]: value
-        })
-    }
-
     render() {
         const {name} = this.state;
         return (
@@ -49,9 +43,8 @@ export default class SaveModal extends Component {
                 >
                     <Text style={{marginBottom:30}}>Сохранить?</Text>
                     <View style={{width:'100%',  flexDirection: 'row', justifyContent: 'flex-end'}}>
-                        <ModalButton title='Отмена' style={styles.buttons} onPress={()=>{this.closeModal()}}/>
-                        <ModalButton title={'Да!'} onPress={() => {
-                            this.props.saveAll()}}/>
+                        <ModalButton title='Отмена' style={styles.buttons} onPress={()=>{this.props.goBack()}}/>
+                        <ModalButton title={'Да!'} onPress={() => {this.props.saveAll()}}/>
                     </View>
 
                   

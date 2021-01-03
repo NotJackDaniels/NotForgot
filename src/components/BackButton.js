@@ -1,15 +1,16 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react'
 import { Text, StyleSheet,TouchableOpacity, Platform } from 'react-native'
+import Ripple from 'react-native-material-ripple';
 import { PRIMARYANDROID, PRIMARYIOS, SECONDARY } from '../globalStyles/colors';
 
 export function BackButton({arrow,title,style,onPress}) {
 
     return (
-        <TouchableOpacity style={[styles.container,style]} onPress={onPress}>
+        <Ripple style={[styles.container,style]} onPress={onPress}>
             <Text style={styles.arrow}>{arrow}</Text>
             <Text style={styles.text}>{title}</Text>
-        </TouchableOpacity>
+        </Ripple>
     );
 }
 

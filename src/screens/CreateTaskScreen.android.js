@@ -16,10 +16,13 @@ import SaveModal from '../components/SaveModal';
 import { GreyBg, PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 import AsyncStorage from '@react-native-community/async-storage';
 import axios from 'axios';
+import NetInfo from "@react-native-community/netinfo";
 
 const { height } = Dimensions.get('window');
 
 export default class CreateTaskScreen extends Component {
+
+    NetInfoSubscription = null;
 
     constructor(){
         super();
@@ -31,6 +34,8 @@ export default class CreateTaskScreen extends Component {
             allPriorities:[],
             selected_id:'',
             description:'',
+            connection_status:false,
+            curDate:new Date(),
         }
         this.AddCategory = this.AddCategory.bind(this);
         this.Save = this.Save.bind(this);
@@ -54,7 +59,7 @@ export default class CreateTaskScreen extends Component {
     state = {
         title:'',
         category:'',
-                    priority:'',
+        priority:'',
     }
     handlePicker = (datetime) => {
         this.setState({
@@ -75,6 +80,8 @@ export default class CreateTaskScreen extends Component {
         authAxios.get('/categories')
           .then(
             res => {
+                const categoriesData = JSON.stringify(res.data);
+                AsyncStorage.setItem('categories', categoriesData);
                 this.setState({allCategories:res.data});
             },
             err => {alert("Ошибка запроса")}
@@ -92,6 +99,8 @@ export default class CreateTaskScreen extends Component {
         authAxios.get('/priorities')
           .then(
             res => {
+                const prioritiesData = JSON.stringify(res.data);
+                AsyncStorage.setItem('priorities', prioritiesData);
                 this.setState({allPriorities:res.data});
             },
             err => {alert("Ошибка запроса")}
@@ -105,27 +114,66 @@ export default class CreateTaskScreen extends Component {
     saveAll = async() => {
         const {title,description,priority,category} = this.state;
         console.warn(title,description,1,this.state.date,category,priority);
-        const req = {
-          "title": title,
-          "description":description,
-          "done": 0,
-          "deadline":this.state.date,
-          "category_id":category,
-          "priority_id":priority,
+        let newTasks = await AsyncStorage.getItem('newTasks');
+        let tasks = await AsyncStorage.getItem('tasks');
+        newTasks = JSON.parse(newTasks);
+        tasks = JSON.parse(tasks)
+        if (!newTasks)
+        {
+            newTasks = []
         }
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')}
-        })
-        authAxios.post('/tasks',req)
-          .then(
-            res => {
+        if (!tasks)
+        {
+            tasks = []
+        }
+        const req = {
+            "title": title,
+            "description":description,
+            "done": 0,
+            "deadline":this.state.date,
+            "category_id":category.id,
+            "priority_id":priority.id,
+        }
+        if(title === undefined || description === undefined || this.state.date === undefined || category === undefined || priority === undefined)
+        {
+            alert('Заполнены не все поля!')
+        }
+        else{
+            if(this.state.connection_status){
+                const authAxios = axios.create({
+                    baseURL: "http://practice.mobile.kreosoft.ru/public/api",
+                    headers:{
+                        'Accept' : 'application/json',
+                        'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')}
+                })
+                authAxios.post('/tasks',req)
+                .then(
+                    res => {
+                        this.goBack();
+                    },
+                    err => {alert("Ошибка запроса")}
+                )
+            }
+            else
+            {
+                var RandomNumber = Math.floor(Math.random() * 100000) + 1 ;
+                const offlineTask = {
+                    'id':RandomNumber,
+                    "title": title,
+                    "description":description,
+                    "done": 0,
+                    "deadline":this.state.date,
+                    "category":category,
+                    "priority":priority,
+                    "created":moment(this.state.curDate,"DD.MM.YYYY").unix(),
+                    }
+                newTasks.push(req)
+                tasks.push(offlineTask)
+                AsyncStorage.setItem('newTasks', JSON.stringify(newTasks));
+                AsyncStorage.setItem('tasks', JSON.stringify(tasks));
                 this.goBack();
-            },
-            err => {alert("Заполнены не все поля!")}
-          )
+            }
+        }
     }
 
     onChangeHandle(state,value){
@@ -134,10 +182,36 @@ export default class CreateTaskScreen extends Component {
         })
     }
 
-    componentDidMount()
+    getOfflineData = async() =>
     {
-        this.getCategory();
-        this.getPriorities();
+        this.setState({allCategories:JSON.parse(await AsyncStorage.getItem('categories'))});
+        this.setState({allPriorities:JSON.parse(await AsyncStorage.getItem('priorities'))});
+    }
+
+    async componentDidMount()
+    {
+        
+        this.NetInfoSubscription = NetInfo.addEventListener(
+            await this._handleConnectivityChange,
+        )
+        if(this.state.connection_status)
+        {
+            this.getCategory();
+            this.getPriorities();
+        }
+        else
+        {
+            console.warn(1);
+            this.getOfflineData();
+        }
+    }
+
+    componentWillUnmount(){
+        this.NetInfoSubscription && this.NetInfoSubscription();
+    }
+
+    _handleConnectivityChange = (state) => {
+        this.setState({connection_status:state.isConnected})
     }
 
     AddCategory(){
@@ -145,7 +219,6 @@ export default class CreateTaskScreen extends Component {
     }
 
     goBack(){
-        this.props.route.params.refresh();
         this.props.navigation.navigate('MainPage');
     }
     
@@ -199,14 +272,14 @@ export default class CreateTaskScreen extends Component {
                                     onValueChange={(itemValue, itemIndex) =>
                                         this.onChangeHandle('category',itemValue)
                                     }>
-                                    {this.state.allCategories.length ?
+                                    <Picker.Item label='Выберите категорию' value=''/>
+                                    {this.state.allCategories !== null && this.state.allCategories.length ?
                                         this.state.allCategories.map(category=>
 
-                                        <Picker.Item key={category.id} label={category.name} value={category.id}/>)
+                                        <Picker.Item key={category.id} label={category.name} value={category}/>)
                                         :
                                         <Picker.Item label="Категория" value="low" />
                                     }
-                                    <Picker.Item label="Категория" value="low" />
                                 </Picker>
                                 { this.state.category === undefined  && 
                                     <View style={{position:'absolute',borderTopLeftRadius:4,height:'100%',width:'80%',backgroundColor:'#f4f4f5',}}>
@@ -220,16 +293,16 @@ export default class CreateTaskScreen extends Component {
                         backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
                             <Picker
                                 mode="dropdown"
-                                placeholder="Start Year"
                                 selectedValue={priority}
                                 itemStyle={styles.itemStyle}
                                 style={styles.priority}
                                 onValueChange={(itemValue, itemIndex) =>
                                     this.onChangeHandle('priority',itemValue)
                                 }>
-                                {this.state.allPriorities.length ?
+                                <Picker.Item label='Выберите приоритет' value=''/>
+                                { this.state.allPriorities !== null && this.state.allPriorities.length ?
                                     this.state.allPriorities.map(prior=>
-                                    <Picker.Item key={prior.id} label={prior.name} value={prior.id}/>
+                                    <Picker.Item key={prior.id} label={prior.name} value={prior}/>
                                     ):
                                     <Picker.Item label="Ошибка" value="error" />
                                 }
@@ -257,7 +330,7 @@ export default class CreateTaskScreen extends Component {
                     </SafeAreaView>
                     
                     <View style={styles.saveButton}>
-                        <FilledButton title={'Сохранить'} onPress={() => {this.Save()}} />
+                        <FilledButton title={'Сохранить'} onPress={() => {this.saveAll()}} />
                     </View>
 
                 </View>
