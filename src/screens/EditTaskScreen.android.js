@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react';
-import { Text, StyleSheet, View, SafeAreaView, Platform } from 'react-native';
-import {Picker} from '@react-native-community/picker';
+import { Text, StyleSheet, View, SafeAreaView, Platform, Image, KeyboardAvoidingView,Dimensions } from 'react-native';
+//import {Picker} from '@react-native-community/picker';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { BackButton } from '../components/BackButton';
@@ -14,32 +14,50 @@ import CategoryModal from '../components/CategoryModal';
 import { GreyBg, PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 import AsyncStorage from '@react-native-community/async-storage';
 import axios from 'axios';
-import SaveModal from '../components/SaveModal';
+import { Picker } from '@react-native-community/picker';
+import SaveModal from '../components/SaveModal.android';
 import NetInfo from "@react-native-community/netinfo";
-import { axiosGet, axiosPost } from '../Api/AxiosApi';
-import { SaveOffline } from '../OfflineChanges/OfflineChanges';
+import { ChangeOffline, SaveOffline } from '../OfflineChanges/OfflineChanges';
+import { axiosGet, axiosPatch } from '../Api/AxiosApi';
 
-export default class CreateTaskScreen extends Component {
+const { height } = Dimensions.get('window');
 
-    NetInfoSubscription = null;
+export default class EditTaskScreen extends Component {
 
     constructor(){
         super();
         this.state = {
             isVisible: false,
+            priority:'',
+            category:3,
             showDate:"Сделать до",
             date:'',
             allCategories:[],
             allPriorities:[],
             selected_id:'',
-            description:'',
             connection_status:false,
-            curDate:new Date(),
+            connection_type:null,
+            connection_net_reachable:null,
+            changedCategory:false,
+            changedPriority:false,
+            description:'',
         }
         this.AddCategory = this.AddCategory.bind(this);
-        this.Save = this.Save.bind(this);
     }
 
+    _handleConnectivityChange = async(state) => {
+        this.setState(
+            {
+                connection_status:state.isConnected,
+                connection_type:state.type,
+                connection_net_reachable:state.isInternetReachable,
+            }
+        )
+    }
+
+    componentWillUnmount(){
+        this.NetInfoSubscription && this.NetInfoSubscription();
+    }
     
 
     hidePicker = () => {
@@ -57,8 +75,6 @@ export default class CreateTaskScreen extends Component {
 
     state = {
         title:'',
-        category:'',
-        priority:'',
     }
     handlePicker = (datetime) => {
         this.setState({
@@ -69,12 +85,16 @@ export default class CreateTaskScreen extends Component {
     }
 
     getCategory = async() => {
+        const item = this.props.route.params.item;
+        this.setState({category:item.category})
         this.setState({allCategories:await axiosGet('/categories')});
         const catData = JSON.stringify(this.state.allCategories);
         AsyncStorage.setItem('categories', catData);
     }
 
     getPriorities = async() => {
+        const item = this.props.route.params.item;
+        this.setState({priority:item.priority})
         this.setState({allPriorities:await axiosGet('/priorities')});
         const prData = JSON.stringify(this.state.allPriorities);
         AsyncStorage.setItem('priorities', prData);
@@ -86,52 +106,49 @@ export default class CreateTaskScreen extends Component {
 
     saveAll = async() => {
         const {title,description,priority,category} = this.state;
-        console.warn(title,description,1,this.state.date,category,priority);
+        const item = this.props.route.params.item;
         if(title === undefined || description === undefined || this.state.date === undefined || category === undefined || priority === undefined)
         {
             alert('Заполнены не все поля!')
             return;
         }
         const req = {
-            "title": title,
-            "description":description,
-            "done": 0,
-            "deadline":this.state.date,
-            "category_id":category.id,
-            "priority_id":priority.id,
+          "title": title,
+          "description":description,
+          "done": item.done,
+          "deadline":this.state.date,
+          "category_id":category.id,
+          "priority_id":priority.id,
         }
-        console.warn(category);
-        
-        if(this.state.connection_status){
-            const res = await axiosPost('/tasks',req)
-            if (res)
+        if (this.state.connection_status){
+            const res = await axiosPatch('/tasks',item.id,req)
+            if(res)
             {
                 this.goBack();
             }
         }
         else
         {
-            var RandomNumber = Math.floor(Math.random() * 100000) + 1 ;
-            const offlineTask = {
-                'id':RandomNumber,
+            const offlineChange = {
+                "id":item.id,
                 "title": title,
                 "description":description,
-                "done": 0,
+                "done": item.done,
                 "deadline":this.state.date,
                 "category":category,
                 "priority":priority,
-                "created":moment(this.state.curDate,"DD.MM.YYYY").unix(),
-                }
-            SaveOffline(req,offlineTask);
+                'created':item.created,
+            }
+            ChangeOffline(item,req,offlineChange)
             this.goBack();
         }
-        
     }
 
-    onChangeHandle(state,value){
-        this.setState({
+    async onChangeHandle(state,value){
+        await this.setState({
           [state]: value
         })
+        console.warn(this.state.category);
     }
 
     getOfflineData = async() =>
@@ -142,35 +159,36 @@ export default class CreateTaskScreen extends Component {
 
     async componentDidMount()
     {
-        
         this.NetInfoSubscription = NetInfo.addEventListener(
             await this._handleConnectivityChange,
         )
         if(this.state.connection_status)
         {
-            this.getCategory();
-            this.getPriorities();
+            await this.getCategory();
+            await this.getPriorities();
         }
         else
         {
             console.warn(1);
             this.getOfflineData();
         }
-    }
-
-    componentWillUnmount(){
-        this.NetInfoSubscription && this.NetInfoSubscription();
-    }
-
-    _handleConnectivityChange = (state) => {
-        this.setState({connection_status:state.isConnected})
+        const item = this.props.route.params.item;
+        await this.setState({
+            category:item.category,
+            title:item.title,
+            description:item.description,
+            showDate:moment(item.deadline * 1000).format('DD.MM.YYYY'),
+            date:item.deadline,
+            priority:item.priority,
+        })
+        
     }
 
     AddCategory(){
         this.refs.addModal.showCategoryModal();
     }
 
-    goBack(){
+    goBack =()=>{
         this.props.navigation.navigate('MainPage');
     }
     
@@ -178,16 +196,21 @@ export default class CreateTaskScreen extends Component {
 
     render() {
         const {title,description,priority,category} = this.state;
-        
+        const item = this.props.route.params.item;
+
         return (
-            <View style={styles.holeContent}>
+            <KeyboardAvoidingView style={{height}}>
             
                 <View  style={styles.heading}>
-                    <BackButton arrow={'<'} title={'Not forgot!'} style={styles.loginButton} onPress={() => {
-                    this.goBack()}}/>
-                    <Text style={styles.textLoc}> Добавить заметку</Text>
+                    <TouchableOpacity style={{marginLeft:10,display:'flex'}} 
+                        onPress={() => {this.Save()}}
+                    >
+                        <Image  source={require("../assets/arrow.png")}/>
+                    </TouchableOpacity>
+                    <Text style={{color:'white',fontSize:20,marginLeft:50}}>Not forgot!</Text>
                 </View>
                 <View style={styles.content}>
+                    <Text style={styles.note}>Изменить заметку</Text>
                     <SafeAreaView style={styles.form}>
                         <Input 
                             style={{marginBottom:8,}} 
@@ -196,12 +219,11 @@ export default class CreateTaskScreen extends Component {
                             onChangeText={(value) => this.onChangeHandle('title',value)}
                         />
                         <View style={{backgroundColor:'rgba(51, 51, 51, 0.06)', marginBottom:5}}>
-                            <Text style={{marginVertical:5,marginHorizontal:12,color:'rgba(0, 0, 0, 0.54)'}}>Описание</Text>
+                            <Text style={{marginTop:5,marginHorizontal:12,color:'rgba(0, 0, 0, 0.54)'}}>Описание</Text>
                             <Input 
                                 style={styles.input} 
                                 multiline
                                 numberOfLines={3}
-                                maxLength = {120}
                                 value={description}
                                 onChangeText={(value) => this.onChangeHandle('description',value)}
                             /> 
@@ -210,8 +232,11 @@ export default class CreateTaskScreen extends Component {
                             <Text>{description.length}/120</Text>
                         </View>
                         <View style={{width:'100%'}}>
-                            <View style={{borderRadius:10,marginBottom:5,width:'80%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
+                            <View style={{marginBottom:5,borderTopLeftRadius:4,
+                                         borderTopRightRadius:4,width:'90%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
                                 <Picker
+                                    
+                                    mode="dropdown"
                                     selectedValue={category}
                                     itemStyle={styles.itemStyle}
                                     style={styles.priority}
@@ -226,18 +251,24 @@ export default class CreateTaskScreen extends Component {
                                         <Picker.Item label="Категория" value="low" />
                                     }
                                 </Picker>
+                                { this.state.changedCategory === false  && 
+                                <View style={{position:'absolute',borderTopLeftRadius:4,height:'100%',width:'80%',backgroundColor:'#f4f4f5',}}>
+                                    <Text style={styles.pickerLabel}>{this.state.category.name}</Text>
+                                </View>}
                             </View>
                             <CategoryButton title={'+'} style={styles.plusButton} onPress={() => this.AddCategory()} />
                         </View>
-                        <View style={{borderRadius:10,marginBottom:5,width:'100%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
+                        <View style={{marginBottom:5,width:'100%',borderTopLeftRadius:4,borderTopRightRadius:4,
+                        backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
                             <Picker
+                                mode="dropdown"
+                                placeholder="Start Year"
                                 selectedValue={priority}
                                 itemStyle={styles.itemStyle}
                                 style={styles.priority}
                                 onValueChange={(itemValue, itemIndex) =>
                                     this.onChangeHandle('priority',itemValue)
                                 }>
-
                                 {this.state.allPriorities.length ?
                                     this.state.allPriorities.map(prior=>
                                     <Picker.Item key={prior.id} label={prior.name} value={prior}/>
@@ -245,9 +276,14 @@ export default class CreateTaskScreen extends Component {
                                     <Picker.Item label="Ошибка" value="error" />
                                 }
                             </Picker>
+                            { this.state.changedPriority === false  && 
+                                <View style={{position:'absolute',borderTopLeftRadius:4,height:'100%',width:'80%',backgroundColor:'#f4f4f5',}}>
+                                    <Text style={styles.pickerLabel}>{this.state.priority.name}</Text>
+                                </View>}
                         </View>
                         <TouchableOpacity style={styles.picker} onPress={this.showPicker}>
                             <Text style={{color:GreyBg}} >{this.state.showDate}</Text>
+                            
                         </TouchableOpacity>
                         
                         <DateTimePicker
@@ -267,8 +303,9 @@ export default class CreateTaskScreen extends Component {
 
                 </View>
                 <CategoryModal getCategory={this.getCategory} ref={'addModal'} />
-                <SaveModal saveAll={this.saveAll} ref={'saveModal'}/>
-            </View>
+                <SaveModal goBack={this.goBack} saveAll={this.saveAll}  ref={'saveModal'}/>
+                
+            </KeyboardAvoidingView>
         )
     }
 }
@@ -276,9 +313,9 @@ export default class CreateTaskScreen extends Component {
 const styles = StyleSheet.create({
     saveButton:{
         position:'absolute',
-        bottom:0,
+        bottom:20,
         width:'100%',
-        padding:10
+        padding:10,
     },
     holeContent:{
         flex:1,
@@ -288,9 +325,16 @@ const styles = StyleSheet.create({
         borderColor: Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
         textAlignVertical: 'top',
         borderBottomWidth: 2,
+        paddingHorizontal:10,
+        paddingVertical:2,
+    },
+    note:{
+        fontSize:30,
+        marginHorizontal:10,
+        marginVertical:5
     },
     form:{
-        margin:10,
+        marginVertical:10,
         padding:10,
         backgroundColor:'white',
         borderBottomWidth: 0,
@@ -301,10 +345,12 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     heading:{
-        flex:0.15,
+        flex:0.08,
+        flexDirection:'row',
         backgroundColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
-        justifyContent: 'center',
+        alignItems: 'center',
         padding:5,
+        width:'100%',
     },
     textLoc:{
         position: 'absolute',
@@ -319,26 +365,53 @@ const styles = StyleSheet.create({
         right:0,
     },
     content:{
-        flex:0.85,
+        flex:0.92,
         zIndex:-1,
     },
     picker:{
-        backgroundColor:'rgba(116, 116, 128, 0.08)',
         color:'white',
-        borderRadius:10,
         width:'100%',
-        alignItems:'center',
-        padding:15,
+        paddingVertical:15,
+        borderBottomWidth: 1,
+        borderColor:'#a9a9a9',
     },
     priority:{
         width: '100%',
         color:GreyBg,
-        backgroundColor:'transparent',
-        alignSelf: 'stretch', 
-        alignItems:'center', 
-        justifyContent:'center',
     },
     itemStyle:{
         alignSelf:'center',
+    },
+    pickerLabel:{
+        top:'25%',
+        fontSize:16,
+        marginLeft:5,
+        color:'#c1c1c4',
     }
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

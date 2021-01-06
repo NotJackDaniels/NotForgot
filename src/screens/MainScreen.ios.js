@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react'
-import { Text, StyleSheet, View, Platform, FlatList, TouchableOpacity, Image, ImageBackground } from 'react-native'
+import { Text, StyleSheet, View, Platform, FlatList, TouchableOpacity, Image, ImageBackground,RefreshControl, TouchableWithoutFeedback, ScrollView, SafeAreaView  } from 'react-native'
 import { PlusButton } from '../components/PlusButton'
 import ActionButton from 'react-native-action-button';
 import { PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors'
@@ -10,8 +10,19 @@ import axios from 'axios';
 import { Task } from '../components/Task.android';
 import CheckBox from '@react-native-community/checkbox';
 import Swipeout from 'react-native-swipeout';
+import NetInfo from "@react-native-community/netinfo";
+import Synchronization from '../components/Synchronization.android';
+import LottieView from 'lottie-react-native';
+import Lottie from './Lottie';
+import { axiosDelete, axiosGet, axiosPatch } from '../Api/AxiosApi';
+import { SyncFunction } from '../Api/Sync';
+import { ChangeOffline, DeleteOffline } from '../OfflineChanges/OfflineChanges';
+
+
 
 export default class MainScreen extends Component {
+
+    NetInfoSubscription = null;
 
     constructor(){
         super();
@@ -19,39 +30,69 @@ export default class MainScreen extends Component {
             allTasks:[],
             done:0,
             allCategories:[],
+            selectedItem: null,
+            connection_status:null,
+            connection_type:null,
+            connection_net_reachable:null,
+            refreshing:null,
+            synchronized:null,
         }
+    }
+    async componentDidMount()
+    {
+         this.NetInfoSubscription = NetInfo.addEventListener(
+            await this._handleConnectivityChange,
+        )
+        await this.getCategory();
         this.getTasks();
     }
 
-    componentDidMount()
-    {
-        this.getCategory();
+    componentWillUnmount(){
+        this.NetInfoSubscription && this.NetInfoSubscription();
+    }
+
+    _handleConnectivityChange = async(state) => {
+
+        if (this.state.connection_status === false)
+        {
+            this.refs.Sync.showSyncModal();
+            let sync =  await SyncFunction()
+            this.getTasks();
+            this.setState({synchronized:sync});
+            if(this.state.synchronized)
+            {
+                this.refs.Sync.closeSyncModal();
+                this.refs.lottie.showLottieModal();
+                setTimeout(() => {
+                    this.refs.lottie.closeLottieModal();
+                }, 6000);
+                this.setState({synchronized:false})
+            }
+        }
+        this.setState(
+            {
+                connection_status:state.isConnected,
+                connection_type:state.type,
+                connection_net_reachable:state.isInternetReachable,
+            }
+        )
     }
 
     getTasks = async() =>{
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
-           
-        })
-        authAxios.get('/tasks')
-          .then(
-            res => {
-                this.setState({allTasks:res.data});
-            },
-            err => {alert("Ошибка запроса")}
-          )
+        if(this.state.connection_status)
+        {
+            this.setState({allTasks:await axiosGet('/tasks')});
+            const taskData = JSON.stringify(this.state.allTasks);
+            AsyncStorage.setItem('tasks', taskData);
+        }
+        else
+        {
+            this.setState({allTasks:JSON.parse(await AsyncStorage.getItem('tasks'))});
+        }
+        this.setState({refreshing: false});
     } 
 
     changeValue = async(item) =>{
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
-        })
         const req = {
             "title": item.title,
             "description":item.description,
@@ -59,16 +100,15 @@ export default class MainScreen extends Component {
             "deadline":item.date,
             "category_id":item.category.id,
             "priority_id":item.priority.id,
-          }
-        authAxios.patch((`/tasks/${item.id}`),req)
-          .then(
-            res => {
-                console.warn(res.data);
-                this.getTasks();
-                return true;
-            },
-            err => {alert(err)}
-          )
+        }
+        if (this.state.connection_status){
+            await axiosPatch('/tasks',item.id,req)
+            return this.checkValue(item);
+        }
+        else
+        {
+            ChangeOffline(item,req);
+        }
     }
 
     checkValue(item){
@@ -79,46 +119,33 @@ export default class MainScreen extends Component {
             return false;
         }
     }
-    _listEmptyComponent = () => {
-        return (
-            <View>
-                // any activity indicator or error component
-            </View>
-        )
-    }
 
     getCategory = async() => {
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
-           
-        })
-        authAxios.get('/categories')
-          .then(
-            res => {
-                this.setState({allCategories:res.data});
-            },
-            err => {alert("Ошибка запроса")}
-          )
+        if(this.state.connection_status)
+        {
+            this.setState({allCategories:await axiosGet('/categories')});
+            const catData = JSON.stringify(this.state.allCategories);
+            AsyncStorage.setItem('categories', catData);
+        }
+        else
+        {
+            this.setState({allCategories:JSON.parse(await AsyncStorage.getItem('categories'))});
+        }
     }
 
     deleteItem = async(item) => {
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
-        })
-        authAxios.delete((`/tasks/${item.id}`))
-            .then(
-                res => {
-                    this.getTasks();
-            },
-                err => {alert(err)}
-            )
+        if (this.state.connection_status){
+            await axiosDelete('/tasks',item.id)
+        }
+        else
+        {
+            DeleteOffline(item);
+        }
     }
+    ShowTaskDetails(item){
+        this.props.navigation.navigate('Details',{item: item,refresh: this.getTasks});
+    }
+
 
     renderItem({item},id){
         const bg = item.priority.color;
@@ -135,7 +162,10 @@ export default class MainScreen extends Component {
                     right={swipeBtns}
                     autoClose='true'
                     backgroundColor= 'transparent'>
-                    <View style={{width:'100%',height:50,flexDirection: 'row',backgroundColor:'white'}}>
+                   
+                    <TouchableOpacity style={{width:'100%',height:50,flexDirection: 'row',backgroundColor:'white'}}
+                     onPress={()=>this.ShowTaskDetails(item)}
+                    >
                         <View style={{height:'100%',width:5,backgroundColor:bg}}></View>
                         <View style={{marginLeft:10}}>
                             <Text style={{fontSize:18,color:'black'}}> {item.title}</Text>
@@ -150,11 +180,17 @@ export default class MainScreen extends Component {
                                 disabled={this.checkValue(item)}
                                 />
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 </Swipeout>
             )
         }
     }
+
+    
+    _onRefresh = () => {
+        this.setState({refreshing: true});
+        this.getTasks();
+      }
 
     checkCategory(id){
         for (let i=0; i < this.state.allTasks.length; i++) {
@@ -173,7 +209,7 @@ export default class MainScreen extends Component {
 
     render() {
         return (
-            <View style={{flex:1,backgroundColor:'white'}}>
+            <View style={{flex:1}}>
                 <View  style={styles.heading}>
                     <Text style={styles.textLoc}> Not forgot! </Text>
                     <PlusButton title={'+'} style={styles.plusButton} onPress={() => {
@@ -183,33 +219,32 @@ export default class MainScreen extends Component {
                         </TouchableOpacity>
 
                 </View>
-                <View >
+                <ScrollView style={{flex:1,backgroundColor:'white'}}
+                refreshControl={<RefreshControl onRefresh={this._onRefresh} refreshing={this.state.refreshing}/>}>
                     {this.state.allTasks && this.state.allTasks.length ? 
                         this.state.allCategories.map(cat=>
                            this.checkCategory(cat.id) === true ?
                                 <View>
                                     <Text style={styles.note}>{cat.name}</Text>
                                     <FlatList
-                                        style={{borderTopWidth:1,borderColor:' rgba(60, 60, 67, 0.29);'}}
                                         data={this.state.allTasks}
                                         renderItem={(item) => this.renderItem(item, cat.id)}
+                                        keyExtractor={(item, index) => `item-${index}`}
                                     />
                                 </View>:null
                             ):
-                            <View style={{width:'80%',alignSelf:'center'}}>
-                                <ImageBackground  source={require('../images/noTasksSanta.png')} 
-                                    imageStyle={{ borderRadius: 10 }}
-                                    style={{justifyContent:'center',marginTop:100,backgroundColor:'white',height:200}}>
-                                    <Text style={styles.imgText}>У вас пока нет дел.</Text>
-                                    <Text style={styles.imgText}> Счастливый вы человек!</Text>
-                                </ImageBackground>
+                            <View style={{alignItems:'center',marginTop:70}}>
+                                <Image
+                                source={require('../images/noTasks.png')}
+                                />
+                                <Text style={{marginTop:20}}>У вас пока нет дел.</Text>
+                                <Text> Счастливый вы человек!</Text>
                             </View>
-                            
                         }
-                        
-                </View>
-                <View style={{height:'100%',backgroundColor:'white'}}></View>
-                
+                        <View style={{backgroundColor:'white',height:'100%'}}/>
+                </ScrollView>
+                <Synchronization ref={'Sync'} />
+                <Lottie ref={'lottie'} />
             </View>
            
         )
@@ -242,8 +277,9 @@ const styles = StyleSheet.create({
     },
     note:{
         fontSize:15,
-        marginHorizontal:10,
-        marginVertical:5
+        paddingHorizontal:10,
+        paddingVertical:5,
+        backgroundColor:'#f2f2f2',
     },
     imgText:{
         color:'white',

@@ -14,10 +14,9 @@ import CategoryModal from '../components/CategoryModal';
 import { GreyBg, PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors';
 import AsyncStorage from '@react-native-community/async-storage';
 import axios from 'axios';
-import SaveModal from '../components/SaveModal';
+import SaveModal from '../components/SaveModal.android';
 import NetInfo from "@react-native-community/netinfo";
-import { axiosGet, axiosPost } from '../Api/AxiosApi';
-import { SaveOffline } from '../OfflineChanges/OfflineChanges';
+import { axiosGet, axiosPatch } from '../Api/AxiosApi';
 
 export default class CreateTaskScreen extends Component {
 
@@ -27,19 +26,35 @@ export default class CreateTaskScreen extends Component {
         super();
         this.state = {
             isVisible: false,
+            priority:'',
+            category:3,
             showDate:"Сделать до",
             date:'',
             allCategories:[],
             allPriorities:[],
             selected_id:'',
-            description:'',
             connection_status:false,
-            curDate:new Date(),
+            connection_type:null,
+            connection_net_reachable:null,
+            changedCategory:false,
+            changedPriority:false,
         }
         this.AddCategory = this.AddCategory.bind(this);
-        this.Save = this.Save.bind(this);
     }
 
+    _handleConnectivityChange = async(state) => {
+        this.setState(
+            {
+                connection_status:state.isConnected,
+                connection_type:state.type,
+                connection_net_reachable:state.isInternetReachable,
+            }
+        )
+    }
+
+    componentWillUnmount(){
+        this.NetInfoSubscription && this.NetInfoSubscription();
+    }
     
 
     hidePicker = () => {
@@ -57,8 +72,7 @@ export default class CreateTaskScreen extends Component {
 
     state = {
         title:'',
-        category:'',
-        priority:'',
+        description:'',
     }
     handlePicker = (datetime) => {
         this.setState({
@@ -69,12 +83,16 @@ export default class CreateTaskScreen extends Component {
     }
 
     getCategory = async() => {
+        const item = this.props.route.params.item;
+        this.setState({category:item.category})
         this.setState({allCategories:await axiosGet('/categories')});
         const catData = JSON.stringify(this.state.allCategories);
         AsyncStorage.setItem('categories', catData);
     }
 
     getPriorities = async() => {
+        const item = this.props.route.params.item;
+        this.setState({priority:item.priority})
         this.setState({allPriorities:await axiosGet('/priorities')});
         const prData = JSON.stringify(this.state.allPriorities);
         AsyncStorage.setItem('priorities', prData);
@@ -86,52 +104,63 @@ export default class CreateTaskScreen extends Component {
 
     saveAll = async() => {
         const {title,description,priority,category} = this.state;
-        console.warn(title,description,1,this.state.date,category,priority);
-        if(title === undefined || description === undefined || this.state.date === undefined || category === undefined || priority === undefined)
+        const item = this.props.route.params.item;
+        let changedTasks = await AsyncStorage.getItem('changedTasks');
+        changedTasks = JSON.parse(changedTasks);
+        let tasks = JSON.parse(await AsyncStorage.getItem('tasks'))
+        if (!changedTasks)
         {
-            alert('Заполнены не все поля!')
-            return;
+            changedTasks = []
         }
         const req = {
-            "title": title,
-            "description":description,
-            "done": 0,
-            "deadline":this.state.date,
-            "category_id":category.id,
-            "priority_id":priority.id,
+          "title": title,
+          "description":description,
+          "done": item.done,
+          "deadline":this.state.date,
+          "category_id":category.id,
+          "priority_id":priority.id,
         }
-        console.warn(category);
-        
-        if(this.state.connection_status){
-            const res = await axiosPost('/tasks',req)
-            if (res)
+        if (this.state.connection_status){
+            const res = await axiosPatch('/tasks',item.id,req)
+            if(res)
             {
                 this.goBack();
             }
         }
         else
         {
-            var RandomNumber = Math.floor(Math.random() * 100000) + 1 ;
-            const offlineTask = {
-                'id':RandomNumber,
+            const offlineChange = {
+                "id":item.id,
                 "title": title,
                 "description":description,
-                "done": 0,
+                "done": item.done,
                 "deadline":this.state.date,
                 "category":category,
                 "priority":priority,
-                "created":moment(this.state.curDate,"DD.MM.YYYY").unix(),
-                }
-            SaveOffline(req,offlineTask);
+                'created':item.created,
+            }
+            const req1 = {
+                itemId:item.id,
+                req:req,
+            }
+            changedTasks.push(req1);
+            AsyncStorage.setItem('changedTasks', JSON.stringify(changedTasks));
+            let alteredTasks = tasks.filter(function(e){
+                return e.id !== offlineChange.id
+            })
+            AsyncStorage.removeItem('tasks');
+            alteredTasks.push(offlineChange);
+            console.warn(alteredTasks);
+            AsyncStorage.setItem('tasks', JSON.stringify(alteredTasks));
             this.goBack();
         }
-        
     }
 
-    onChangeHandle(state,value){
-        this.setState({
+    async onChangeHandle(state,value){
+        await this.setState({
           [state]: value
         })
+        console.warn(this.state.category);
     }
 
     getOfflineData = async() =>
@@ -142,39 +171,39 @@ export default class CreateTaskScreen extends Component {
 
     async componentDidMount()
     {
-        
         this.NetInfoSubscription = NetInfo.addEventListener(
             await this._handleConnectivityChange,
         )
         if(this.state.connection_status)
         {
-            this.getCategory();
-            this.getPriorities();
+            await this.getCategory();
+            await this.getPriorities();
         }
         else
         {
             console.warn(1);
             this.getOfflineData();
         }
-    }
-
-    componentWillUnmount(){
-        this.NetInfoSubscription && this.NetInfoSubscription();
-    }
-
-    _handleConnectivityChange = (state) => {
-        this.setState({connection_status:state.isConnected})
+        const item = this.props.route.params.item;
+        await this.setState({
+            category:item.category,
+            title:item.title,
+            description:item.description,
+            showDate:moment(item.deadline * 1000).format('DD.MM.YYYY'),
+            date:item.deadline,
+            priority:item.priority,
+        })
+        
     }
 
     AddCategory(){
         this.refs.addModal.showCategoryModal();
     }
 
-    goBack(){
+    goBack =()=>{
         this.props.navigation.navigate('MainPage');
     }
     
-
 
     render() {
         const {title,description,priority,category} = this.state;
@@ -184,8 +213,8 @@ export default class CreateTaskScreen extends Component {
             
                 <View  style={styles.heading}>
                     <BackButton arrow={'<'} title={'Not forgot!'} style={styles.loginButton} onPress={() => {
-                    this.goBack()}}/>
-                    <Text style={styles.textLoc}> Добавить заметку</Text>
+                    this.Save()}}/>
+                    <Text style={styles.textLoc}> Изменить заметку</Text>
                 </View>
                 <View style={styles.content}>
                     <SafeAreaView style={styles.form}>
@@ -201,13 +230,9 @@ export default class CreateTaskScreen extends Component {
                                 style={styles.input} 
                                 multiline
                                 numberOfLines={3}
-                                maxLength = {120}
                                 value={description}
                                 onChangeText={(value) => this.onChangeHandle('description',value)}
                             /> 
-                        </View>
-                        <View style={{flexDirection: 'row', justifyContent: 'flex-end',marginBottom:10}}>
-                            <Text>{description.length}/120</Text>
                         </View>
                         <View style={{width:'100%'}}>
                             <View style={{borderRadius:10,marginBottom:5,width:'80%',backgroundColor:'rgba(116, 116, 128, 0.08)',}}>
@@ -267,7 +292,9 @@ export default class CreateTaskScreen extends Component {
 
                 </View>
                 <CategoryModal getCategory={this.getCategory} ref={'addModal'} />
-                <SaveModal saveAll={this.saveAll} ref={'saveModal'}/>
+                <SaveModal goBack={this.goBack} saveAll={this.saveAll}  ref={'saveModal'}/>
+                
+                
             </View>
         )
     }
@@ -281,7 +308,7 @@ const styles = StyleSheet.create({
         padding:10
     },
     holeContent:{
-        flex:1,
+        height:'100%',
     },
     input:{
         backgroundColor:'transparent',
@@ -301,7 +328,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     heading:{
-        flex:0.15,
+        height:'18%',
         backgroundColor:Platform.OS === 'ios' ? PRIMARYIOS : PRIMARYANDROID,
         justifyContent: 'center',
         padding:5,
@@ -319,7 +346,7 @@ const styles = StyleSheet.create({
         right:0,
     },
     content:{
-        flex:0.85,
+        height:'82%',
         zIndex:-1,
     },
     picker:{
