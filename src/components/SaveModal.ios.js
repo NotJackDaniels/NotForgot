@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-community/async-storage';
 const keyboardVerticalOffset = 0;
 
 
-export default class CategoryModal extends Component {
+export default class SaveModal extends Component {
     constructor(props){
         super(props);
         this.state = {
@@ -63,7 +63,7 @@ export default class CategoryModal extends Component {
                     </View>
                     <View style={{height:1,backgroundColor:GreyBg,width:'100%'}}></View>
                     <View style={{width:'100%',  flexDirection: 'row',}}>
-                        <ModalButton title='Отмена' style1={styles.buttons} onPress={()=>{this.closeModal()}}/>
+                        <ModalButton title='Отмена' style1={styles.buttons} onPress={()=>{this.props.goBack()}}/>
                         <View style={{height:'100%',backgroundColor:GreyBg,width:1}}></View>
                         <ModalButton title={'Сохранить'} style1={styles.buttons}  onPress={() => {
                             this.props.saveAll()}}/>
