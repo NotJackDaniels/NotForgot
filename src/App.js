@@ -1,20 +1,23 @@
 /* eslint-disable prettier/prettier */
-import React, {Component} from 'react';
-import {LoginScreen} from './screens/LoginScreen';
-import {RegistrationScreen} from './screens/RegistrationScreen';
+import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
-import {AuthStackNavigator} from './navigators/AuthStackNavigator';
+import {AuthStackNavigator} from './navigators/routes';
+import { StatusBar } from 'react-native';
+import { PRIMARYANDROID } from './globalStyles/colors';
 
 const RootStack = createStackNavigator();
 
 
 export default function() {
-  return(
-    <NavigationContainer>
-      <RootStack.Navigator screenOptions={{headerShown:false,}}>
-        <RootStack.Screen name={'AuthStack'} component={AuthStackNavigator} />
-      </RootStack.Navigator>
-    </NavigationContainer>
+  return (
+    <>
+      <StatusBar backgroundColor={'#c66a37'} />
+      <NavigationContainer>
+        <RootStack.Navigator screenOptions={{headerShown:false,}}>
+          <RootStack.Screen name={'AuthStack'} component={AuthStackNavigator} />
+        </RootStack.Navigator>
+      </NavigationContainer>
+    </>
   ); 
 }
