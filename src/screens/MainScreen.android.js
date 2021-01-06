@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react'
-import { Text, StyleSheet, View, Platform, FlatList, TouchableOpacity, Image } from 'react-native'
+import { Text, StyleSheet, View, Platform, FlatList, TouchableOpacity, Image,RefreshControl } from 'react-native'
 import { PlusButton } from '../components/PlusButton'
 import ActionButton from 'react-native-action-button';
 import { PRIMARY, PRIMARYANDROID, PRIMARYIOS } from '../globalStyles/colors'
@@ -12,10 +12,20 @@ import CheckBox from '@react-native-community/checkbox';
 import Swipeout from 'react-native-swipeout';
 import { InMemoryCache } from '@apollo/client/core';
 import { isNonNullType } from 'graphql';
+import NetInfo from "@react-native-community/netinfo";
+import Synchronization from '../components/Synchronization.android';
+import LottieView from 'lottie-react-native';
+import Lottie from './Lottie';
+import { ScrollView } from 'react-native-gesture-handler';
+import { axiosDelete, axiosGet, axiosPatch } from '../Api/AxiosApi';
+import { SyncFunction } from '../Api/Sync';
+import { ChangeOffline, DeleteOffline } from '../OfflineChanges/OfflineChanges';
 
 
 
 export default class MainScreen extends Component {
+
+    NetInfoSubscription = null;
 
     constructor(){
         super();
@@ -24,52 +34,68 @@ export default class MainScreen extends Component {
             done:0,
             allCategories:[],
             selectedItem: null,
+            connection_status:null,
+            connection_type:null,
+            connection_net_reachable:null,
+            refreshing:null,
+            synchronized:null,
         }
+    }
+    async componentDidMount()
+    {
+         this.NetInfoSubscription = NetInfo.addEventListener(
+            await this._handleConnectivityChange,
+        )
+        await this.getCategory();
         this.getTasks();
     }
-    componentDidMount()
-    {
-        this.getCategory();
 
+    componentWillUnmount(){
+        this.NetInfoSubscription && this.NetInfoSubscription();
+    }
+
+    _handleConnectivityChange = async(state) => {
+
+        if (this.state.connection_status === false)
+        {
+            this.refs.Sync.showSyncModal();
+            let sync =  await SyncFunction()
+            this.getTasks();
+            this.setState({synchronized:sync});
+            if(this.state.synchronized)
+            {
+                this.refs.Sync.closeSyncModal();
+                this.refs.lottie.showLottieModal();
+                setTimeout(() => {
+                    this.refs.lottie.closeLottieModal();
+                }, 6000);
+                this.setState({synchronized:false})
+            }
+        }
+        this.setState(
+            {
+                connection_status:state.isConnected,
+                connection_type:state.type,
+                connection_net_reachable:state.isInternetReachable,
+            }
+        )
     }
 
     getTasks = async() =>{
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
-           
-        })
-        const tasks = await AsyncStorage.getItem('tasks')
-        
-        if(tasks) {
-            try {
-              const tasksResp = await authAxios.get('/tasks')
-              const taskData = await JSON.stringify(tasksResp.data)
-              await AsyncStorage.setItem('tasks', taskData);
-            } catch(e) {
-              console.warn("fetch Error: ", e)
-           }
+        if(this.state.connection_status)
+        {
+            this.setState({allTasks:await axiosGet('/tasks')});
+            const taskData = JSON.stringify(this.state.allTasks);
+            AsyncStorage.setItem('tasks', taskData);
         }
-        this.state.allTasks = JSON.parse(await AsyncStorage.getItem('tasks'));
-        authAxios.get('/tasks')
-          .then(
-
-            res => {
-                this.setState({allTasks:res.data});
-            },
-            err => {alert("Ошибка запроса")}
-          )
+        else
+        {
+            this.setState({allTasks:JSON.parse(await AsyncStorage.getItem('tasks'))});
+        }
+        this.setState({refreshing: false});
     } 
 
     changeValue = async(item) =>{
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
-        })
         const req = {
             "title": item.title,
             "description":item.description,
@@ -77,15 +103,25 @@ export default class MainScreen extends Component {
             "deadline":item.date,
             "category_id":item.category.id,
             "priority_id":item.priority.id,
-          }
-        authAxios.patch((`/tasks/${item.id}`),req)
-          .then(
-            res => {
-                this.getTasks();
-                return this.checkValue(item);
-            },
-            err => {alert(err)}
-          )
+        }
+        if (this.state.connection_status){
+            await axiosPatch('/tasks',item.id,req)
+            return this.checkValue(item);
+        }
+        else
+        {
+            const offlineChange = {
+                "id":item.id,
+                "title": item.title,
+                "description":item.description,
+                "done": 1,
+                "deadline":item.deadline,
+                "category":item.category,
+                "priority":item.priority,
+                'created':item.created,
+            }
+            ChangeOffline(item,req,offlineChange);
+        }
     }
 
     checkValue(item){
@@ -98,36 +134,26 @@ export default class MainScreen extends Component {
     }
 
     getCategory = async() => {
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
-           
-        })
-        authAxios.get('/categories')
-          .then(
-            res => {
-                this.setState({allCategories:res.data});
-            },
-            err => {alert("Ошибка запроса")}
-          )
+        if(this.state.connection_status)
+        {
+            this.setState({allCategories:await axiosGet('/categories')});
+            const catData = JSON.stringify(this.state.allCategories);
+            AsyncStorage.setItem('categories', catData);
+        }
+        else
+        {
+            this.setState({allCategories:JSON.parse(await AsyncStorage.getItem('categories'))});
+        }
     }
 
     deleteItem = async(item) => {
-        const authAxios = axios.create({
-            baseURL: "http://practice.mobile.kreosoft.ru/public/api",
-            headers:{
-                'Accept' : 'application/json',
-                'Authorization': 'Bearer ' + await AsyncStorage.getItem('token')},
-        })
-        authAxios.delete((`/tasks/${item.id}`))
-            .then(
-                res => {
-                    this.getTasks();
-            },
-                err => {alert(err)}
-            )
+        if (this.state.connection_status){
+            await axiosDelete('/tasks',item.id)
+        }
+        else
+        {
+            DeleteOffline(item);
+        }
     }
     ShowTaskDetails(item){
         this.props.navigation.navigate('Details',{item: item,refresh: this.getTasks});
@@ -154,8 +180,8 @@ export default class MainScreen extends Component {
                      onPress={()=>this.ShowTaskDetails(item)}
                     >
                         <View style={{height:'100%',width:5,backgroundColor:bg}}></View>
-                        <View style={{marginLeft:10}}>
-                            <Text style={{fontSize:18,color:'black'}}> {item.title}</Text>
+                        <View style={{marginLeft:10,width:'80%'}}>
+                            <Text numberOfLines={1} style={{fontSize:18,color:'black'}}> {item.title}</Text>
                             <Text multiline
                                         numberOfLines={1} style={{fontSize:16}}> {item.description}</Text>
                         </View>
@@ -189,6 +215,11 @@ export default class MainScreen extends Component {
         await AsyncStorage.clear();
         this.props.navigation.navigate('Login');
     }
+
+    _onRefresh = () => {
+        this.setState({refreshing: true});
+        this.getTasks();
+      }
     
     render() {
         return (
@@ -203,7 +234,8 @@ export default class MainScreen extends Component {
                         />
                     </TouchableOpacity>
                 </View>
-                <View >
+                <ScrollView 
+                refreshControl={<RefreshControl onRefresh={this._onRefresh} refreshing={this.state.refreshing}/>}>
                     {this.state.allTasks && this.state.allTasks.length ? 
                         this.state.allCategories.map(cat=>
                            this.checkCategory(cat.id) === true ?
@@ -224,12 +256,13 @@ export default class MainScreen extends Component {
                                 <Text> Счастливый вы человек!</Text>
                             </View>
                         }
-                </View>
+                </ScrollView>
                 <ActionButton buttonColor={PRIMARYANDROID}
                     onPress={() => {
                         this.props.navigation.navigate('CreateTask',{refresh: this.getTasks}) }}
                 ></ActionButton>
-                
+                <Synchronization ref={'Sync'} />
+                <Lottie ref={'lottie'} />
             </View>
         )
     }

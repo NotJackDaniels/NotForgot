@@ -1,14 +1,15 @@
 /* eslint-disable prettier/prettier */
 import React, { Component } from 'react'
 import { Text, StyleSheet,TouchableOpacity, Platform } from 'react-native'
+import Ripple from 'react-native-material-ripple';
 import { PRIMARYANDROID, PRIMARYIOS, SECONDARY } from '../globalStyles/colors';
 
 export function ModalButton({title,style,style1,onPress}) {
 
     return (
-        <TouchableOpacity style={[styles.container,style1]} onPress={onPress}>
+        <Ripple style={[styles.container,style1]} onPress={onPress}>
             <Text style={[styles.text,style]}>{title}</Text>
-        </TouchableOpacity>
+        </Ripple>
     );
 }
 
