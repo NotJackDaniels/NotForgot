@@ -29,9 +29,11 @@ export class RegistrationScreen extends React.Component {
     const { email,name,password,repeatPassword } = this.state;
     if(this.state.password !== this.state.repeatPassword){
       alert("Пароли не совпадают");
+      return;
     }
     else if(this.state.password === "" || this.state.repeatPassword === "" || this.state.email === "" || this.state.name === ""){
       alert("Остались незаполненные поля");
+      return;
     }
     else{
 
