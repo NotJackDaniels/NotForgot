@@ -24,6 +24,7 @@ export function AuthStackNavigator() {
             <RoutStack.Screen name={'Registration'} component={RegistrationScreen}/>
             <RoutStack.Screen name={'MainPage'} component={MainScreen} />
             <RoutStack.Screen name={'CreateTask'} component={CreateTaskScreen} />
+            <RoutStack.Screen name={'Details'} component={TaskDetailsScreen} />
         </RoutStack.Navigator>
     ); 
 }
